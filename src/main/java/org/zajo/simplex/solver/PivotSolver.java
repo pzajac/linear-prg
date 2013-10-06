@@ -104,7 +104,7 @@ public class PivotSolver {
         double leavingVal = leavingVector.get(enteringIndex);
         leavingVector.set(enteringIndex, 0);
         leavingVector.set(basicVars[leavingIndex], -1);
-        leavingVector.scale(leavingVal*-1);
+        leavingVector.scale(-1.0/leavingVal);
         
         for (Vector vector : rows) {
             substituteToVector(vector, leavingVector);
