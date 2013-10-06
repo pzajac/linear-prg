@@ -170,5 +170,16 @@ public class PivotSolver {
         return status;
     }
     
+    String getReport() {
+        StringBuilder report = new StringBuilder();
+        if (status == Status.UNBOUNDED) {
+            report.append(Status.UNBOUNDED);
+        } else {
+            report.append(getEnteringIndex()).append("\n");
+            report.append(getLeavingIndex()).append("\n");
+            report.append(getCurrentValue());
+        }
+        return report.toString();
+    }
     
 }

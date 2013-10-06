@@ -70,6 +70,8 @@ public class PivotSolverTest extends TestCase {
             assertEquals("value for " + fileName, Double.parseDouble(line), solver.getCurrentValue(), 1e-3);
         }
         
+        System.out.println(solver.getReport());
+        
     }
     private PivotSolver read(String name) throws IOException {
         File f = new File(FOLDER, name);
