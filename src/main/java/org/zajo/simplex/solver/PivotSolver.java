@@ -94,7 +94,7 @@ public class PivotSolver {
             status = Status.OK;
             updateDictionary();
         } else {
-            status = Status.UNBOUND;
+            status = Status.UNBOUNDED;
         }
         return status;
     }

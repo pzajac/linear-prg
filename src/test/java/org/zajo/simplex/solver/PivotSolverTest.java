@@ -61,7 +61,7 @@ public class PivotSolverTest extends TestCase {
         
         
         if("UNBOUNDED".equals(firstLine)) {
-            assertEquals("Unbound " + fileName, Status.UNBOUND, solver.getStatus());
+            assertEquals("Unbound " + fileName, Status.UNBOUNDED, solver.getStatus());
         } else {
             assertEquals("entering index for " + fileName, Integer.parseInt(firstLine), solver.getEnteringIndex());
             String line = reader.readLine();

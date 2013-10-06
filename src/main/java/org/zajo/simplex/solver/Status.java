@@ -6,6 +6,6 @@ package org.zajo.simplex.solver;
  */
 public enum Status {
     OK,
-    UNBOUND,
+    UNBOUNDED,
     FINAL
 }
