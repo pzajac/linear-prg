@@ -71,13 +71,11 @@ public class PivotSolver {
     }
 
     public Status nextIteration() {
-        System.out.println("----------------------------");
-        System.out.println(toString());
         List<Integer> enteringIndexes = Lists.newArrayList();
         enteringIndex = -1;
         leavingIndex = -1;
         for (Integer nbi : getNonBasicIndexes()) {
-            if (lastList.get(nbi) > 0 ) {
+            if (lastList.get(nbi) > 0) {
                 enteringIndexes.add(nbi);
             }
         }
@@ -88,33 +86,28 @@ public class PivotSolver {
         }
 //        for (Integer ei : enteringIndexes) {
         int ei = enteringIndexes.get(0);
-            double bestVal = -Double.MAX_VALUE;
-            boolean found = false;
-            for (int i = 0; i < rows.size(); i++) {
-                Vector vector = rows.get(i);
-                double val = vector.get(ei);
-                double b = vector.get(0);
-                if (b > 0 && val < 0) {
-                    double tmpVal = b / val;
-                    if ( tmpVal > bestVal || (Math.abs(tmpVal - bestVal) < DELTA && basicVars[leavingIndex] > basicVars[i])) {
-                        leavingIndex = i;
-                        bestVal = tmpVal;
-                        found = true;
-                        enteringIndex = ei;
-                    }
+        double bestVal = -Double.MAX_VALUE;
+        boolean found = false;
+        for (int i = 0; i < rows.size(); i++) {
+            Vector vector = rows.get(i);
+            double val = vector.get(ei);
+            double b = vector.get(0);
+            if (b >= 0 && val < 0) {
+                double tmpVal = b / val;
+                if (tmpVal > bestVal || (Math.abs(tmpVal - bestVal) < DELTA && basicVars[leavingIndex] > basicVars[i])) {
+                    leavingIndex = i;
+                    bestVal = tmpVal;
+                    found = true;
+                    enteringIndex = ei;
                 }
             }
-//            if (found) {
-//                break;
-//            }
-//        } 
+        }
+
         if (enteringIndex > 0 && leavingIndex > -1) {
             iterations++;
             status = Status.OK;
             oldEnteringIndex = enteringIndex;
             oldLeavingIndex = this.basicVars[leavingIndex];
-            System.out.println("Entering index = " + oldEnteringIndex);
-            System.out.println("Leaving index = " + oldLeavingIndex);
             
             updateDictionary();
         } else {

@@ -21,7 +21,6 @@ public class Excercise2ValidationTest extends TestCase {
 
     public void testParse() throws IOException {
 
-        checkFile("dict" + 5);
         for (int i = 1 ; i < 11; i++) {
             checkFile("dict" + i);
         }
@@ -44,7 +43,7 @@ public class Excercise2ValidationTest extends TestCase {
                 double value = Double.parseDouble(line);
                 assertEquals("value for " + fileName, value, solver.getCurrentValue(), 1e-4);
                 int steps = Integer.parseInt(reader.readLine());
-//                assertEquals("steps for " + fileName, steps, solver.getIterations());
+                assertTrue("steps for " + fileName, steps<= solver.getIterations());
             }
             byte bytes[] = new byte[1000];
         } finally {
