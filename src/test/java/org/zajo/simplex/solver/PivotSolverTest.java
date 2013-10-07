@@ -31,21 +31,20 @@ public class PivotSolverTest extends TestCase {
 //        System.out.println("leavingIndex:" + solver.getLeavingIndex());
 //        System.out.println("Value:" + solver.getCurrentValue());
 //        
-        checkFile("dict2");
-        checkFile("dict3");
-        checkFile("dict4");
+//        checkFile("dict2");
+//        checkFile("dict3");
+//        checkFile("dict4");
         checkFile("dict6");
         checkFile("dict5");
         File folder = new File(FOLDER);
         String[] listFiles = folder.list(new FilenameFilter() {
-
             public boolean accept(File dir, String name) {
-                                   return !(name.contains(".")) && name.startsWith("dict");
+                return !(name.contains(".")) && name.startsWith("dict");
             }
         });
         for (int i = 0; i < listFiles.length; i++) {
             checkFile(listFiles[i]);
-            
+
         }
     }
 
@@ -54,13 +53,13 @@ public class PivotSolverTest extends TestCase {
         System.out.println(solver.toString());
         solver.nextIteration();
         System.out.println(fileName);
-        
-        BufferedReader reader = new BufferedReader(new FileReader(new File (FOLDER,fileName + ".output")));
+
+        BufferedReader reader = new BufferedReader(new FileReader(new File(FOLDER, fileName + ".output")));
         String firstLine = reader.readLine();
         Status status = Status.OK;
-        
-        
-        if("UNBOUNDED".equals(firstLine)) {
+
+
+        if ("UNBOUNDED".equals(firstLine)) {
             assertEquals("Unbound " + fileName, Status.UNBOUNDED, solver.getStatus());
         } else {
             assertEquals("entering index for " + fileName, Integer.parseInt(firstLine), solver.getEnteringIndex());
@@ -69,10 +68,11 @@ public class PivotSolverTest extends TestCase {
             line = reader.readLine();
             assertEquals("value for " + fileName, Double.parseDouble(line), solver.getCurrentValue(), 1e-3);
         }
-        
-        System.out.println(solver.getReport());
-        
+
+        System.out.println(solver.getSingleIterationReport());
+
     }
+
     private PivotSolver read(String name) throws IOException {
         File f = new File(FOLDER, name);
         Reader reader = new FileReader(f);

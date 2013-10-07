@@ -35,7 +35,7 @@ public class Excercise1Test extends TestCase {
         solver.nextIteration();
         PrintWriter pw = new PrintWriter(new File(FOLDER, fileName + ".output"));
         try {
-            pw.println(solver.getReport());
+            pw.println(solver.getSingleIterationReport());
         } finally {
             pw.close();
         }

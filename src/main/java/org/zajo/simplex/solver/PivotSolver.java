@@ -3,6 +3,7 @@ package org.zajo.simplex.solver;
 import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -25,7 +26,11 @@ public class PivotSolver {
     
     int enteringIndex = -1;
     int leavingIndex = -1;
-
+    
+    int oldEnteringIndex = -1;
+    int oldLeavingIndex = -1;
+    int iterations;
+    
     Set<Integer> allVars = Sets.newHashSet();
     
     
@@ -66,32 +71,51 @@ public class PivotSolver {
     }
 
     public Status nextIteration() {
+        System.out.println("----------------------------");
+        System.out.println(toString());
+        List<Integer> enteringIndexes = Lists.newArrayList();
         enteringIndex = -1;
         leavingIndex = -1;
         for (Integer nbi : getNonBasicIndexes()) {
-            if (lastList.get(nbi) > 0 && (enteringIndex == -1 || nbi < enteringIndex)) {
-                enteringIndex = nbi;
-//                break;
+            if (lastList.get(nbi) > 0 ) {
+                enteringIndexes.add(nbi);
             }
         }
-        if (enteringIndex > 0) {
+        Collections.sort(enteringIndexes);
+        if (enteringIndexes.isEmpty()) {
+            status = Status.FINAL;
+            return status;
+        }
+//        for (Integer ei : enteringIndexes) {
+        int ei = enteringIndexes.get(0);
             double bestVal = -Double.MAX_VALUE;
+            boolean found = false;
             for (int i = 0; i < rows.size(); i++) {
                 Vector vector = rows.get(i);
-                double val = vector.get(enteringIndex);
+                double val = vector.get(ei);
                 double b = vector.get(0);
                 if (b > 0 && val < 0) {
                     double tmpVal = b / val;
                     if ( tmpVal > bestVal || (Math.abs(tmpVal - bestVal) < DELTA && basicVars[leavingIndex] > basicVars[i])) {
                         leavingIndex = i;
                         bestVal = tmpVal;
-                        
+                        found = true;
+                        enteringIndex = ei;
                     }
                 }
             }
-        } 
+//            if (found) {
+//                break;
+//            }
+//        } 
         if (enteringIndex > 0 && leavingIndex > -1) {
+            iterations++;
             status = Status.OK;
+            oldEnteringIndex = enteringIndex;
+            oldLeavingIndex = this.basicVars[leavingIndex];
+            System.out.println("Entering index = " + oldEnteringIndex);
+            System.out.println("Leaving index = " + oldLeavingIndex);
+            
             updateDictionary();
         } else {
             status = Status.UNBOUNDED;
@@ -110,6 +134,7 @@ public class PivotSolver {
             substituteToVector(vector, leavingVector);
         }
         substituteToVector(lastList, leavingVector);
+        basicVars[leavingIndex] = enteringIndex;
     }
     
     private void initRow(InputParser parser, double[] rowVals,int rowValsIdx, Vector row) {
@@ -155,11 +180,11 @@ public class PivotSolver {
     }
 
     int getEnteringIndex() {
-        return enteringIndex;
+        return oldEnteringIndex;
     }
 
     int getLeavingIndex() {
-        return (leavingIndex > -1) ? basicVars[leavingIndex] : -1;
+        return oldLeavingIndex;
     }
 
     double getCurrentValue() {
@@ -170,7 +195,7 @@ public class PivotSolver {
         return status;
     }
     
-    String getReport() {
+    public String getSingleIterationReport() {
         StringBuilder report = new StringBuilder();
         if (status == Status.UNBOUNDED) {
             report.append(Status.UNBOUNDED);
@@ -181,5 +206,20 @@ public class PivotSolver {
         }
         return report.toString();
     }
+    
+    public String getReport() {
+        StringBuilder builder = new StringBuilder();
+        if (status == Status.FINAL) {
+            builder.append(getCurrentValue() + "\n" + iterations);
+        } else {
+            builder.append(status);
+        }
+        return  builder.toString();
+    }
+
+    public int getIterations() {
+        return iterations;
+    }
+    
     
 }
