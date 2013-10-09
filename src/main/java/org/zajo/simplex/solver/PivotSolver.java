@@ -61,6 +61,33 @@ public class PivotSolver {
         addToAllVars(parser.getNonBasicIndexes());
     }
 
+    private PivotSolver(PivotSolver solver) {
+        parser = solver.parser;
+         int maxIndex = parser.getMaxIndex();
+        rows = Lists.newArrayList();
+        int rowIdx = 0;
+        for (double[] rowVals :  parser.getaMatrix()) {
+            Vector row = new DenseVector(maxIndex + 2);
+            initRow(parser, rowVals,0, row);
+            row.set(0, parser.getbValues()[rowIdx++]);
+            row.set(maxIndex + 1, 1);
+            rows.add(row);
+        }
+        int[] basicIndexes = parser.getBasicIndexes();
+        basicVars = new int[basicIndexes.length];
+        for (int i = 0; i < basicIndexes.length; i++) {
+            basicVars[i] = basicIndexes[i];
+        }
+        
+
+        lastList = new DenseVector(maxIndex + 2);
+        double[] objectiveCoefs = parser.getObjectiveCoefs();
+        lastList.set(maxIndex +1, -1);
+        
+        addToAllVars(parser.getBasicIndexes());
+        addToAllVars(parser.getNonBasicIndexes());
+        addToAllVars(new int[]{maxIndex + 1});
+    }
     
     public Set<Integer> getNonBasicIndexes() {
         HashSet<Integer> copy = Sets.newHashSet(allVars);
@@ -69,7 +96,13 @@ public class PivotSolver {
         }
         return copy;
     }
-
+    
+    PivotSolver toAuxilaryProblem() {
+        PivotSolver ps =  new PivotSolver(this);
+        ps.firstAxilaryStep();
+        return ps;
+    }
+    
     public Status nextIteration() {
         List<Integer> enteringIndexes = Lists.newArrayList();
         enteringIndex = -1;
@@ -102,17 +135,7 @@ public class PivotSolver {
                 }
             }
         }
-
-        if (enteringIndex > 0 && leavingIndex > -1) {
-            iterations++;
-            status = Status.OK;
-            oldEnteringIndex = enteringIndex;
-            oldLeavingIndex = this.basicVars[leavingIndex];
-            
-            updateDictionary();
-        } else {
-            status = Status.UNBOUNDED;
-        }
+        updateForEnteringAndLeavingIndexes();
         return status;
     }
     
@@ -213,6 +236,32 @@ public class PivotSolver {
     public int getIterations() {
         return iterations;
     }
-    
+
+    private void updateForEnteringAndLeavingIndexes() {
+        if (enteringIndex > 0 && leavingIndex > -1) {
+            iterations++;
+            status = Status.OK;
+            oldEnteringIndex = enteringIndex;
+            oldLeavingIndex = this.basicVars[leavingIndex];
+            
+            updateDictionary();
+        } else {
+            status = Status.UNBOUNDED;
+        }
+    }
+
+    private Status firstAxilaryStep() {
+        enteringIndex = this.allVars.size();
+        double leavingVal = Double.MAX_VALUE;
+        for (int i = 0; i < rows.size(); i++) {
+            Vector vector = rows.get(i);
+            if(vector.get(0) < leavingVal) {
+                leavingIndex = i;
+                leavingVal = vector.get(0);
+            }
+        }    
+        updateForEnteringAndLeavingIndexes();
+        return status;
+    }
     
 }
