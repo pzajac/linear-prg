@@ -1,6 +1,5 @@
 package org.zajo.simplex.solver;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.Collections;
@@ -18,7 +17,7 @@ public class PivotSolver {
     public static final double DELTA = 1e-6;
 
     List<Vector> rows;
-    int[] basicVars;
+    List<Integer> basicVars;
     Vector lastList;
     private final InputParser parser;
     
@@ -47,9 +46,9 @@ public class PivotSolver {
             rows.add(row);
         }
         int[] basicIndexes = parser.getBasicIndexes();
-        basicVars = new int[basicIndexes.length];
+        basicVars = Lists.newArrayList();
         for (int i = 0; i < basicIndexes.length; i++) {
-            basicVars[i] = basicIndexes[i];
+            basicVars.add(basicIndexes[i]);
         }
         
         lastList = new DenseVector(maxIndex + 1);
@@ -74,9 +73,9 @@ public class PivotSolver {
             rows.add(row);
         }
         int[] basicIndexes = parser.getBasicIndexes();
-        basicVars = new int[basicIndexes.length];
+        basicVars = Lists.newArrayList();
         for (int i = 0; i < basicIndexes.length; i++) {
-            basicVars[i] = basicIndexes[i];
+            basicVars.add(basicIndexes[i]);
         }
         
 
@@ -91,9 +90,7 @@ public class PivotSolver {
     
     public Set<Integer> getNonBasicIndexes() {
         HashSet<Integer> copy = Sets.newHashSet(allVars);
-        for (int i = 0; i < basicVars.length; i++) {
-            copy.remove(basicVars[i]);
-        }
+        copy.removeAll(basicVars);
         return copy;
     }
     
@@ -127,7 +124,9 @@ public class PivotSolver {
             double b = vector.get(0);
             if (b >= 0 && val < 0) {
                 double tmpVal = b / val;
-                if (tmpVal > bestVal || (Math.abs(tmpVal - bestVal) < DELTA && basicVars[leavingIndex] > basicVars[i])) {
+                if (tmpVal > bestVal
+                        || (Math.abs(tmpVal - bestVal) < DELTA 
+                        && basicVars.get(leavingIndex) > basicVars.get(i))) {
                     leavingIndex = i;
                     bestVal = tmpVal;
                     found = true;
@@ -143,14 +142,14 @@ public class PivotSolver {
         Vector leavingVector = rows.get(leavingIndex);
         double leavingVal = leavingVector.get(enteringIndex);
         leavingVector.set(enteringIndex, 0);
-        leavingVector.set(basicVars[leavingIndex], -1);
+        leavingVector.set(basicVars.get(leavingIndex), -1);
         leavingVector.scale(-1.0/leavingVal);
         
         for (Vector vector : rows) {
             substituteToVector(vector, leavingVector);
         }
         substituteToVector(lastList, leavingVector);
-        basicVars[leavingIndex] = enteringIndex;
+        basicVars.set(leavingIndex, enteringIndex);
     }
     
     private void initRow(InputParser parser, double[] rowVals,int rowValsIdx, Vector row) {
@@ -179,7 +178,7 @@ public class PivotSolver {
         builder.append("Rows:\n");
         for (int i = 0; i < rows.size(); i++) {
             Vector vector = rows.get(i);
-            builder.append(basicVars[i]).append(" |");
+            builder.append(basicVars.get(i)).append(" |");
             vect2Str(vector, builder);
             builder.append("\n");
             
@@ -242,7 +241,7 @@ public class PivotSolver {
             iterations++;
             status = Status.OK;
             oldEnteringIndex = enteringIndex;
-            oldLeavingIndex = this.basicVars[leavingIndex];
+            oldLeavingIndex = this.basicVars.get(leavingIndex);
             
             updateDictionary();
         } else {
