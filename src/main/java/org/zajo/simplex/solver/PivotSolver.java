@@ -94,12 +94,20 @@ public class PivotSolver {
         return copy;
     }
     
+    /**
+     * Convert LP to AxilaryProblem (another one slack variable.
+     * @return auxilary problem)
+     */
     PivotSolver toAuxilaryProblem() {
         PivotSolver ps =  new PivotSolver(this);
         ps.firstAxilaryStep();
         return ps;
     }
     
+    /**
+     * Perform single pivoting step.
+     * @return status 
+     */
     public Status nextIteration() {
         List<Integer> enteringIndexes = Lists.newArrayList();
         enteringIndex = -1;
