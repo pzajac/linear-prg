@@ -33,6 +33,14 @@ public class PivotSolver {
     Set<Integer> allVars = Sets.newHashSet();
     
     
+    private PivotSolver(List<Vector> rows, List<Integer> basicVars, Vector lastList, InputParser parser, Set<Integer> allVars) {
+        this.rows = rows;
+        this.basicVars = basicVars;
+        this.lastList = lastList;
+        this.parser = parser;
+        this.allVars = allVars;
+    }
+    
     public PivotSolver(InputParser parser) {
         this.parser = parser;
         
@@ -269,6 +277,118 @@ public class PivotSolver {
         }    
         updateForEnteringAndLeavingIndexes();
         return status;
+    }
+
+    boolean insertCutPlanes() {
+        List<Integer> canditesToCut = Lists.newArrayList();
+        // find all candidates for cut
+        for (int i = 0; i < rows.size(); i++) {
+            Vector vector = rows.get(i);
+            if (canInsertCutFor(vector)) {
+                canditesToCut.add(i);
+            }
+        }
+        if (canditesToCut.isEmpty()) {
+            return false;
+        }
+        int newVar = allVars.size() + 1;
+        extendsRowsVariables(canditesToCut.size());
+        // insert the cut planes
+        for (Integer rowIdx : canditesToCut) {
+            insertCut(rowIdx, newVar++);
+        }
+        
+        return true;
+        
+    }
+
+    public PivotSolver convertToDualProblem() {
+        List<Integer> nonBasicIndexes = Lists.newArrayList(getNonBasicIndexes());
+        int numRows = nonBasicIndexes.size();
+        List<Vector> newRows = Lists.newArrayList();
+        Vector newLastList = new DenseVector(allVars.size() + 1);
+        for (int i = 0 ; i < numRows ; i++) {
+           Integer newBasicIndex = nonBasicIndexes.get(i);
+           Vector newRow = new DenseVector(allVars.size() + 1);
+           
+           newRow.set(0, - lastList.get(newBasicIndex));
+            for (int oldRowIdx = 0; oldRowIdx < rows.size(); oldRowIdx++) {
+                Vector oldRow = rows.get(oldRowIdx);
+                newRow.set(basicVars.get(oldRowIdx), -oldRow.get(newBasicIndex));
+            }
+            newRows.add(newRow);
+            
+        }
+        newLastList.set(0, -lastList.get(0)); 
+        for (int oldRowIdx = 0; oldRowIdx < rows.size(); oldRowIdx++) {
+            Vector oldRow = rows.get(oldRowIdx);
+            newLastList.set(basicVars.get(oldRowIdx), -oldRow.get(0));
+        }
+        
+        
+        PivotSolver solver = new PivotSolver(newRows, nonBasicIndexes, newLastList, parser, Sets.newHashSet(allVars));
+        return solver;
+    }
+
+    private boolean canInsertCutFor(Vector vector) {
+        double val = vector.get(0);
+        double rVal = Math.rint(val);
+        if (Math.abs(val - rVal) > DELTA) {
+            return true;
+        }
+        return false;
+    }
+
+    private void insertCut(Integer rowIdx,Integer newVar) {
+        Vector oldRow = rows.get(rowIdx);
+        Vector newRow = new DenseVector(oldRow.size());
+        
+        double val = oldRow.get(0);
+        
+        if (val >= -DELTA) {
+            val = Math.floor(val) - val;
+        } else {
+            throw new IllegalStateException("negative value: " + val);
+        }
+        newRow.set(0, val);
+        
+        for (int col = 1 ; col < oldRow.size() ; col++) {
+            val = oldRow.get(col);
+            if (val < 0) {
+                val = Math.abs(val);
+                val -= Math.floor(val);
+            } else if (val > 0) {
+                val = Math.abs(val);
+                val = Math.ceil(val) - val;
+            }
+            newRow.set(col, val);
+        }
+        rows.add(newRow);
+    }
+    
+
+    private void extendsRowsVariables(int count) {
+        for (int rowIdx = 0; rowIdx < rows.size(); rowIdx++) {
+            Vector origRow = rows.get(rowIdx);
+            Vector newRow = new DenseVector(origRow.size() + count);
+            int col = 0;
+            for (; col < origRow.size(); col++) {
+                newRow.set(col, origRow.get(col));
+            }
+            // clear new values
+            for (; col < newRow.size(); col++) {
+                newRow.set(col, 0);
+            }
+            rows.set(rowIdx, newRow);
+            
+        }
+        // extends variables
+        int startNewVar = allVars.size() + 1;
+        for (int newVarIdx = 0; newVarIdx < count; newVarIdx++) {
+            final int newVar = startNewVar + newVarIdx;
+            allVars.add(newVar);
+            basicVars.add(newVar);
+        }
     }
     
 }
