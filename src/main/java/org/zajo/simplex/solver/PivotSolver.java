@@ -279,6 +279,10 @@ public class PivotSolver {
         return status;
     }
 
+    /**
+     * Insert cutting planes for solving ILP problem.
+     * @return true if at least one cutting plane has been inserted
+     */
     boolean insertCutPlanes() {
         List<Integer> canditesToCut = Lists.newArrayList();
         // find all candidates for cut
@@ -295,13 +299,17 @@ public class PivotSolver {
         extendsRowsVariables(canditesToCut.size());
         // insert the cut planes
         for (Integer rowIdx : canditesToCut) {
-            insertCut(rowIdx, newVar++);
+            insertCut(rowIdx);
         }
         
         return true;
         
     }
 
+    /**
+     * Convert pivot table to new new one dual problem.
+     * @return converted dual problem
+     */
     public PivotSolver convertToDualProblem() {
         List<Integer> nonBasicIndexes = Lists.newArrayList(getNonBasicIndexes());
         int numRows = nonBasicIndexes.size();
@@ -330,8 +338,13 @@ public class PivotSolver {
         return solver;
     }
 
-    private boolean canInsertCutFor(Vector vector) {
-        double val = vector.get(0);
+    /**
+     * Test whether or not can insert cut plane for row 
+     * @param row source row
+     * @return truen if cut plane can be inserted
+     */
+    private boolean canInsertCutFor(Vector row) {
+        double val = row.get(0);
         double rVal = Math.rint(val);
         if (Math.abs(val - rVal) > DELTA) {
             return true;
@@ -339,7 +352,7 @@ public class PivotSolver {
         return false;
     }
 
-    private void insertCut(Integer rowIdx,Integer newVar) {
+    private void insertCut(Integer rowIdx) {
         Vector oldRow = rows.get(rowIdx);
         Vector newRow = new DenseVector(oldRow.size());
         
@@ -367,6 +380,10 @@ public class PivotSolver {
     }
     
 
+    /**
+     * Add new variables to pivot table.
+     * @param count number of new variables
+     */
     private void extendsRowsVariables(int count) {
         for (int rowIdx = 0; rowIdx < rows.size(); rowIdx++) {
             Vector origRow = rows.get(rowIdx);
@@ -389,6 +406,85 @@ public class PivotSolver {
             allVars.add(newVar);
             basicVars.add(newVar);
         }
+    }
+
+    /**
+     * @return true if the problem needs to be converted to auxilary problem
+     */
+    public boolean needsAuxilary() {
+        for (Vector row : rows) {
+            if (row.get(0) < 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 
+     * @return last line in pivot table
+     */
+    public Vector getLastList() {
+        return lastList;
+    }
+
+    
+    /**
+     * convert auxilary proble back to origin problem. It updates last
+     * line of pivot table by substituting the orig Problem last line. 
+     * @param origProblem original LP problem
+     */
+    void auxilaryToOrig(PivotSolver origProblem) {
+        Vector lastList1 = origProblem.getLastList();
+        Vector origLastList = new DenseVector(lastList.size());
+        for (int i = 0; i < lastList1.size(); i++) {
+            origLastList.set(i, lastList1.get(i));
+        }
+        Vector newLastist = new DenseVector(lastList.size());
+        origLastList.set(lastList1.size(), 0);
+        for (int i = 0; i < basicVars.size(); i++) {
+            Integer basicVar = basicVars.get(i);
+            double scale = origLastList.get(basicVar);
+            newLastist.add(scale, rows.get(i));
+        }
+       
+        lastList = newLastist;
+        removeVariable(allVars.size());
+    }
+
+    /**
+     * Remove variable from pivot table. It's used for removing x0 from
+     * auxilary problem.
+     * @param var variable index to be removed (from 1).
+     */
+    private void removeVariable(int var) {
+        for (int i = 0; i < basicVars.size(); i++) {
+            Integer integer = basicVars.get(i);
+            if (integer == var) {
+                rows.remove(i);
+                basicVars.remove(i);
+            }
+            
+        }
+        
+        List<Vector> newRows = Lists.newArrayList();
+        for (Vector oldRow : rows) {
+            newRows.add(removeVarFromRow(oldRow, var));
+        }
+        rows = newRows;
+        allVars.remove(var);
+        lastList = removeVarFromRow(lastList, var);
+    }
+
+    private Vector removeVarFromRow(Vector oldRow, int var) {
+        Vector newRow = new DenseVector(oldRow.size() - 1);
+        int j = 0;
+        for (int i = 0; i < oldRow.size(); i++) {
+            if (i != var) {
+                newRow.set(j++, oldRow.get(i));
+            }
+        }
+        return newRow;
     }
     
 }

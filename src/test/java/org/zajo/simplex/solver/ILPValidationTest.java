@@ -21,25 +21,36 @@ public class ILPValidationTest extends TestCase {
 
     public void testParse() throws IOException {
 
-         checkFile("ilpTest" + 1);
-//        for (int i = 1 ; i < 11; i++) {
-//            checkFile("idict" + i);
-//        }
+        for (int i = 1; i < 10; i++) {
+            checkFile("ilpTest" + i);
+        }
 
     }
 
     public void checkFile(String fileName) throws IOException {
         PivotSolver solver = read(fileName);
-//        PivotSolver auxPropblem = solver.toAuxilaryProblem();
+        System.out.println("initial:" + solver.toString());
+        PivotSolver origProblem = solver;
+        boolean auxilary = solver.needsAuxilary();
+        if (auxilary) {
+            solver = solver.toAuxilaryProblem();
+            System.out.println("aux: " + solver);
+        }
         Status nextIteration = null;
         // compute LP problem
         do {
             nextIteration = solver.nextIteration();
         } while (nextIteration == Status.OK);
- 
+        if (nextIteration == Status.FINAL && auxilary) {
+            if (Math.abs(solver.getCurrentValue()) > PivotSolver.DELTA) {
+                nextIteration = Status.UNBOUNDED;
+            } else {
+                solver.auxilaryToOrig(origProblem);
+            }
+        }
         System.out.println("initial final: " + solver.toString());
         // isert cut planes
-        while(solver.insertCutPlanes() && nextIteration == Status.FINAL) {
+        while(nextIteration == Status.FINAL && solver.insertCutPlanes() ) {
             System.out.println("cut planes inserted: " + solver.toString());
             // convert to dual problem
             solver = solver.convertToDualProblem();
@@ -59,8 +70,12 @@ public class ILPValidationTest extends TestCase {
         BufferedReader reader = new BufferedReader(new FileReader(new File(FOLDER,fileName + ".output")));
         try {
             String line = reader.readLine();
-            double auxValue = Double.parseDouble(line);
-            assertEquals("result " + fileName, auxValue, solver.getCurrentValue(), 1e-4);
+            if (nextIteration == Status.UNBOUNDED) {
+                assertEquals("result " + fileName, "infeasible", line);
+            } else {
+                double auxValue = Double.parseDouble(line);
+                assertEquals("result " + fileName, auxValue, solver.getCurrentValue(), 1e-4);
+            }
         } finally {
             reader.close();
         }
