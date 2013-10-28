@@ -46,16 +46,4 @@ public class ILPValidationTest extends TestCase {
         }
     }
 
-    private PivotSolver read(String name) throws IOException {
-        File f = new File(FOLDER, name);
-        Reader reader = new FileReader(f);
-        try {
-            BufferedReader breader = new BufferedReader(reader);
-            InputParser parser = new InputParser();
-            parser.parseMatrix(breader);
-            return new PivotSolver(parser);
-        } finally {
-            reader.close();
-        }
-    }
 }
