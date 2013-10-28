@@ -2,6 +2,7 @@ package org.zajo.simplex.solver;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
@@ -28,53 +29,17 @@ public class ILPValidationTest extends TestCase {
     }
 
     public void checkFile(String fileName) throws IOException {
-        PivotSolver solver = read(fileName);
-        System.out.println("initial:" + solver.toString());
-        PivotSolver origProblem = solver;
-        boolean auxilary = solver.needsAuxilary();
-        if (auxilary) {
-            solver = solver.toAuxilaryProblem();
-            System.out.println("aux: " + solver);
-        }
-        Status nextIteration = null;
-        // compute LP problem
-        do {
-            nextIteration = solver.nextIteration();
-        } while (nextIteration == Status.OK);
-        if (nextIteration == Status.FINAL && auxilary) {
-            if (Math.abs(solver.getCurrentValue()) > PivotSolver.DELTA) {
-                nextIteration = Status.UNBOUNDED;
-            } else {
-                solver.auxilaryToOrig(origProblem);
-            }
-        }
-        System.out.println("initial final: " + solver.toString());
-        // isert cut planes
-        while(nextIteration == Status.FINAL && solver.insertCutPlanes() ) {
-            System.out.println("cut planes inserted: " + solver.toString());
-            // convert to dual problem
-            solver = solver.convertToDualProblem();
-            System.out.println("dual problem:" + solver);
-            // compute lp problem
-            do {
-                nextIteration = solver.nextIteration();
-            } while (nextIteration == Status.OK);
-            if (nextIteration != Status.FINAL) {
-                break;
-            }
-            System.out.println("dual final:" + solver);
-            // convert to original problem
-            solver = solver.convertToDualProblem();
-            System.out.println("original final: " + solver);
-        }
-        BufferedReader reader = new BufferedReader(new FileReader(new File(FOLDER,fileName + ".output")));
+        ILPSolver ilpSolver = new ILPSolver(new FileInputStream(new File(FOLDER, fileName)));
+        Status nextIteration = ilpSolver.compute();
+        File file = new File(FOLDER,fileName + ".output");
+        BufferedReader reader = new BufferedReader(new FileReader(file));
         try {
             String line = reader.readLine();
             if (nextIteration == Status.UNBOUNDED) {
                 assertEquals("result " + fileName, "infeasible", line);
             } else {
                 double auxValue = Double.parseDouble(line);
-                assertEquals("result " + fileName, auxValue, solver.getCurrentValue(), 1e-4);
+                assertEquals("result " + fileName, auxValue, ilpSolver.getValue(), 1e-4);
             }
         } finally {
             reader.close();
