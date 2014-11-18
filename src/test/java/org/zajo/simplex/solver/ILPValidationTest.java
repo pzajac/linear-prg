@@ -21,24 +21,35 @@ public class ILPValidationTest extends TestCase {
 
     public void testParse() throws IOException {
 
-        for (int i = 1; i < 10; i++) {
+//        checkFile("ilpTest" + 6);
+        for (int i = 1; i < 11; i++) {
             checkFile("ilpTest" + i);
         }
 
     }
 
     public void checkFile(String fileName) throws IOException {
+        System.out.println(fileName);
         ILPSolver ilpSolver = new ILPSolver(new FileInputStream(new File(FOLDER, fileName)));
         Status nextIteration = ilpSolver.compute();
-        File file = new File(FOLDER,fileName + ".output");
+        File file = new File(FOLDER, fileName + ".output");
         BufferedReader reader = new BufferedReader(new FileReader(file));
         try {
             String line = reader.readLine();
-            if (nextIteration == Status.UNBOUNDED) {
-                assertEquals("result " + fileName, "infeasible", line);
-            } else {
-                double auxValue = Double.parseDouble(line);
-                assertEquals("result " + fileName, auxValue, ilpSolver.getValue(), 1e-4);
+            switch (nextIteration) {
+                case INFEASIBLE:
+                    assertEquals("result " + fileName, "infeasible", line);
+                    break;
+                case UNBOUNDED:    
+                    assertEquals("result " + fileName, "unbounded", line);
+                    break;
+                case FINAL:
+                    double auxValue  = Double.parseDouble(line);
+                    assertEquals("result " + fileName, auxValue, ilpSolver.getValue(), 1e-17);
+                    break;
+                default:
+                    fail("invalid status " + nextIteration);
+                    
             }
         } finally {
             reader.close();

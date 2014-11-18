@@ -12,6 +12,7 @@ public enum Status {
      * The problem is unbounded.
      */
     UNBOUNDED,
+    INFEASIBLE,
     /**
      * Dictionary is final.
      */

@@ -1,47 +1,60 @@
 package org.zajo.simplex.solver;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import junit.framework.TestCase;
 
 /**
  *
  * @author pzajac
  */
-public class ILPValidationTest extends TestCase {
+public class ILPTest extends TestCase {
 
-    private static final String FOLDER = "/home/pzajac/coursera/LinearProgramming/programming/ilpTest/";
+    private static final String FOLDER = "/home/pzajac/coursera/LinearProgramming/programming/ilpAssigments/";
 
-    public ILPValidationTest(String testName) {
+    public ILPTest(String testName) {
         super(testName);
     }
 
     public void testParse() throws IOException {
 
-        for (int i = 1; i < 10; i++) {
-            checkFile("ilpTest" + i);
+        
+//         checkFile("part" + 2);
+        for (int i = 1; i < 6; i++) {
+            checkFile("part" + i);
         }
 
     }
 
     public void checkFile(String fileName) throws IOException {
-        ILPSolver ilpSolver = new ILPSolver(new FileInputStream(new File(FOLDER, fileName)));
+        System.out.println(fileName);
+        ILPSolver ilpSolver = new ILPSolver(new FileInputStream(new File(FOLDER, fileName + ".dict")));
         Status nextIteration = ilpSolver.compute();
         File file = new File(FOLDER,fileName + ".output");
-        BufferedReader reader = new BufferedReader(new FileReader(file));
+        PrintWriter writer = new PrintWriter(new FileWriter(file));
         try {
-            String line = reader.readLine();
-            if (nextIteration == Status.UNBOUNDED) {
-                assertEquals("result " + fileName, "infeasible", line);
-            } else {
-                double auxValue = Double.parseDouble(line);
-                assertEquals("result " + fileName, auxValue, ilpSolver.getValue(), 1e-4);
+            
+            switch(nextIteration) {
+                case INFEASIBLE:
+                    writer.println("infeasible");
+                    break;
+                case UNBOUNDED:
+                    writer.println("unbounded");
+                    break;
+                case FINAL:
+                    writer.println(ilpSolver.getValue());
+                    break;
+                default:
+                    throw new IllegalStateException("Invalid state " + nextIteration);
             }
         } finally {
-            reader.close();
+            writer.close();
         }
     }
 

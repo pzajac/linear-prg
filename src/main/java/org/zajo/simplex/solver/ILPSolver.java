@@ -31,37 +31,50 @@ public class ILPSolver {
     public Status compute() throws IOException {
         PivotSolver solver = new PivotSolver(inputParser);
         PivotSolver origProblem = solver;
+        System.out.println("original problem: " + origProblem);
         boolean auxilary = solver.needsAuxilary();
         if (auxilary) {
             solver = solver.toAuxilaryProblem();
+            System.out.println("auxilary problem: " + solver);
         }
         // compute LP problem
         do {
             status = solver.nextIteration();
+            System.out.println("iteration: " + solver);
         } while (status == Status.OK);
         if (status == Status.FINAL && auxilary) {
             if (Math.abs(solver.getCurrentValue()) > PivotSolver.DELTA) {
-                status = Status.UNBOUNDED;
+                status = Status.INFEASIBLE;
             } else {
                 solver.auxilaryToOrig(origProblem);
+                System.out.println("feasible auxilary problem: " + solver);
+                do {
+                    status = solver.nextIteration();
+                    System.out.println("iteration  " + status + ": " + solver);
+                } while (status == Status.OK);
             }
         }
         // isert cut planes
         while (status == Status.FINAL && solver.insertCutPlanes()) {
+            System.out.println("cut planes:" + solver);
             // convert to dual problem
             solver = solver.convertToDualProblem();
+            System.out.println("dual problem: " + solver);
             // compute lp problem
             do {
                 status = solver.nextIteration();
+                System.out.println("iteration: " + solver);
             } while (status == Status.OK);
             if (status != Status.FINAL) {
+                status = Status.INFEASIBLE;
                 break;
             }
             // convert to original problem
             solver = solver.convertToDualProblem();
+            System.out.println("converted dual problem: " + solver);
         }
-        if (status != Status.UNBOUNDED) {
-            value = solver.getCurrentValue();
+        if (status == Status.FINAL) {
+            value = Math.rint(solver.getCurrentValue());
         }
 
         return status;

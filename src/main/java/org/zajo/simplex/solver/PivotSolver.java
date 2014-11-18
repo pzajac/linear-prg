@@ -8,13 +8,14 @@ import java.util.List;
 import java.util.Set;
 import no.uib.cipr.matrix.DenseVector;
 import no.uib.cipr.matrix.Vector;
+import no.uib.cipr.matrix.VectorEntry;
 
 /**
  *
  * @author pzajac
  */
 public class PivotSolver {
-    public static final double DELTA = 1e-6;
+    public static final double DELTA = 1e-10;
 
     List<Vector> rows;
     List<Integer> basicVars;
@@ -121,7 +122,7 @@ public class PivotSolver {
         enteringIndex = -1;
         leavingIndex = -1;
         for (Integer nbi : getNonBasicIndexes()) {
-            if (lastList.get(nbi) > 0) {
+            if (lastList.get(nbi) > DELTA) {
                 enteringIndexes.add(nbi);
             }
         }
@@ -138,7 +139,7 @@ public class PivotSolver {
             Vector vector = rows.get(i);
             double val = vector.get(ei);
             double b = vector.get(0);
-            if (b >= 0 && val < 0) {
+            if (b >= 0 && val < -DELTA) {
                 double tmpVal = b / val;
                 if (tmpVal > bestVal
                         || (Math.abs(tmpVal - bestVal) < DELTA 
@@ -166,6 +167,11 @@ public class PivotSolver {
         }
         substituteToVector(lastList, leavingVector);
         basicVars.set(leavingIndex, enteringIndex);
+        for (Vector row : rows) {
+            fixSmallValues(row);
+        }
+        fixSmallValues(lastList);
+        
     }
     
     private void initRow(InputParser parser, double[] rowVals,int rowValsIdx, Vector row) {
@@ -208,6 +214,7 @@ public class PivotSolver {
         double scale = vector.get(enteringIndex);
         vector.set(enteringIndex, 0);
         vector.add(scale, leavingVector);
+        
     }
 
     int getEnteringIndex() {
@@ -228,8 +235,8 @@ public class PivotSolver {
     
     public String getSingleIterationReport() {
         StringBuilder report = new StringBuilder();
-        if (status == Status.UNBOUNDED) {
-            report.append(Status.UNBOUNDED);
+        if (status == Status.UNBOUNDED || status == Status.INFEASIBLE) {
+            report.append(status);
         } else {
             report.append(getEnteringIndex()).append("\n");
             report.append(getLeavingIndex()).append("\n");
@@ -360,6 +367,9 @@ public class PivotSolver {
         
         if (val >= -DELTA) {
             val = Math.floor(val) - val;
+            if (Math.abs(Math.abs(val) - 1) < DELTA) {
+                val = 0;
+            }
         } else {
             throw new IllegalStateException("negative value: " + val);
         }
@@ -373,6 +383,9 @@ public class PivotSolver {
             } else if (val > 0) {
                 val = Math.abs(val);
                 val = Math.ceil(val) - val;
+            }
+            if (Math.abs(Math.abs(val)  - 1) < DELTA) {
+                val = 0;
             }
             newRow.set(col, val);
         }
@@ -442,11 +455,14 @@ public class PivotSolver {
         }
         Vector newLastist = new DenseVector(lastList.size());
         origLastList.set(lastList1.size(), 0);
+//        newLastist.set(0, origLastList.get(0));
         for (int i = 0; i < basicVars.size(); i++) {
             Integer basicVar = basicVars.get(i);
             double scale = origLastList.get(basicVar);
+            origLastList.set(basicVar, 0);
             newLastist.add(scale, rows.get(i));
         }
+        newLastist.add(1, origLastList);
        
         lastList = newLastist;
         removeVariable(allVars.size());
@@ -486,5 +502,12 @@ public class PivotSolver {
         }
         return newRow;
     }
-    
+
+    private void fixSmallValues(Vector vec) {
+        for (VectorEntry vectorEntry : vec) {
+            if (Math.abs(vectorEntry.get()) < DELTA) {
+                vectorEntry.set(0);
+            }
+        }
+    }
 }
